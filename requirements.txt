@@ -4,4 +4,4 @@ pusher
 psycopg2-binary
 gunicorn
 python-dotenv
-logging
+jinja2

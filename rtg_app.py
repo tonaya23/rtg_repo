@@ -15,6 +15,10 @@ load_dotenv()
 logging.basicConfig(level=logging.DEBUG)
 logger = logging.getLogger(__name__)
 
+@app.route('/')
+def index():
+    return render_template('index.html')
+
 # Configuración segura de variables de entorno
 def get_env_variable(var_name, default=None):
     value = os.getenv(var_name, default)
