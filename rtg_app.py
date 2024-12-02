@@ -57,10 +57,10 @@ def favicon():
 try:
     # Pusher Configuration
     pusher_client = pusher.Pusher(
-        app_id=get_env_variable("PUSHER_APP_ID", "1904573"),
-        key=get_env_variable("PUSHER_KEY", "d4db60f9f99c2c2b7f8c"),
-        secret=get_env_variable("PUSHER_SECRET", "bcc85f0d3f4299526015"),
-        cluster=get_env_variable("PUSHER_CLUSTER", "mt1"),
+        app_id=("1904573"),
+        key=("d4db60f9f99c2c2b7f8c"),
+        secret=("bcc85f0d3f4299526015"),
+        cluster=("mt1"),
         ssl=True
     )
 except Exception as e:
