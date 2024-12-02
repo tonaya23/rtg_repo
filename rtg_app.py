@@ -8,16 +8,16 @@ from psycopg2.extras import RealDictCursor
 from datetime import datetime
 from dotenv import load_dotenv
 
-# Load environment variables
+# Cargar variables de entorno
 load_dotenv()
 
 # Configuración de logging
 logging.basicConfig(level=logging.DEBUG)
 logger = logging.getLogger(__name__)
 
-@app.route('/')
-def index():
-    return render_template('index.html')
+# Inicializar Flask ANTES de cualquier decorador de ruta
+app = Flask(__name__)
+CORS(app)
 
 # Configuración segura de variables de entorno
 def get_env_variable(var_name, default=None):
@@ -25,6 +25,11 @@ def get_env_variable(var_name, default=None):
     if value is None:
         logger.error(f"CRITICAL: Environment variable {var_name} not set!")
     return value
+
+
+# Configuración de logging
+logging.basicConfig(level=logging.DEBUG)
+logger = logging.getLogger(__name__)
 
 try:
     # Pusher Configuration
@@ -35,23 +40,28 @@ try:
         cluster=get_env_variable("PUSHER_CLUSTER", "mt1"),
         ssl=True
     )
-
-    # Conexión a base de datos
-    def get_db_connection():
-        db_url = get_env_variable('DATABASE_URL', 'postgresql://postgres:root@localhost:5432/rtg')
-        if not db_url:
-            logger.error("DATABASE_URL not configured!")
-            raise ValueError("No database URL provided")
-        
-        try:
-            conn = psycopg2.connect(db_url, cursor_factory=RealDictCursor)
-            return conn
-        except Exception as e:
-            logger.error(f"Database connection error: {e}")
-            raise
-
 except Exception as e:
-    logger.error(f"Initialization error: {e}")
+    logger.error(f"Error configurando Pusher: {e}")
+    pusher_client = None
+
+# Función de conexión a base de datos
+def get_db_connection():
+    db_url = get_env_variable('DATABASE_URL', 'postgresql://postgres:root@localhost:5432/rtg')
+    if not db_url:
+        logger.error("DATABASE_URL no configurada!")
+        raise ValueError("No se proporcionó URL de base de datos")
+    
+    try:
+        conn = psycopg2.connect(db_url, cursor_factory=RealDictCursor)
+        return conn
+    except Exception as e:
+        logger.error(f"Error de conexión a base de datos: {e}")
+        raise
+
+# Ruta principal
+@app.route('/')
+def index():
+    return render_template('index.html')
 
 # Clase Adapter (copiada desde tu implementación original)
 class ThirdPartyGanttLibrary:
