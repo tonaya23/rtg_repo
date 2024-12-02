@@ -1,6 +1,6 @@
 import os
 import logging
-from flask import Flask, render_template, jsonify, request
+from flask import Flask, render_template, jsonify, request, send_from_directory
 from flask_cors import CORS
 import pusher
 import psycopg2
@@ -11,26 +11,49 @@ from dotenv import load_dotenv
 # Cargar variables de entorno
 load_dotenv()
 
-# Configuración de logging
+# Configuración de logging más detallada
 logging.basicConfig(level=logging.DEBUG)
 logger = logging.getLogger(__name__)
 
-# Inicializar Flask ANTES de cualquier decorador de ruta
-app = Flask(__name__)
+# Inicializar Flask
+app = Flask(__name__, 
+            static_folder='static', 
+            template_folder='templates')
 CORS(app)
 
-# Configuración segura de variables de entorno
-def get_env_variable(var_name, default=None):
-    value = os.getenv(var_name, default)
-    if value is None:
-        logger.error(f"CRITICAL: Environment variable {var_name} not set!")
-    return value
+# Ruta para depuración
+@app.route('/debug')
+def debug():
+    import sys
+    import os
+    
+    debug_info = {
+        "Python Version": sys.version,
+        "Current Working Directory": os.getcwd(),
+        "App Root Path": app.root_path,
+        "Template Folder": app.template_folder,
+        "Static Folder": app.static_folder,
+        "Existing Templates": os.listdir(app.template_folder) if os.path.exists(app.template_folder) else "Template folder not found"
+    }
+    
+    return jsonify(debug_info)
 
+# Ruta principal con más logging
+@app.route('/')
+def index():
+    try:
+        logger.debug("Intentando renderizar index.html")
+        return render_template('index.html')
+    except Exception as e:
+        logger.error(f"Error al renderizar index.html: {e}")
+        return f"Error: {str(e)}", 500
 
-# Configuración de logging
-logging.basicConfig(level=logging.DEBUG)
-logger = logging.getLogger(__name__)
-
+# Ruta para servir favicon
+@app.route('/favicon.ico')
+def favicon():
+    return send_from_directory(os.path.join(app.root_path, 'static'), 
+                               'favicon.ico', 
+                               mimetype='image/vnd.microsoft.icon')
 try:
     # Pusher Configuration
     pusher_client = pusher.Pusher(
@@ -243,12 +266,16 @@ def delete_task(task_id):
 def health_check():
     return jsonify({"status": "healthy"}), 200
 
-# [Mantén tus rutas existentes]
+# Manejo de errores
+@app.errorhandler(404)
+def page_not_found(e):
+    logger.error(f"Página no encontrada: {e}")
+    return "Página no encontrada", 404
 
-@app.errorhandler(Exception)
-def handle_error(e):
-    logger.error(f"Unhandled exception: {e}")
-    return jsonify(error=str(e)), 500
+@app.errorhandler(500)
+def internal_server_error(e):
+    logger.error(f"Error interno del servidor: {e}")
+    return "Error interno del servidor", 500
 
 if __name__ == '__main__':
-    app.run(host='0.0.0.0', port=int(os.environ.get('PORT', 5000)))
+    app.run(host='0.0.0.0', port=int(os.environ.get('PORT', 5000)), debug=True)
