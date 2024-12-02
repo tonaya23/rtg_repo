@@ -15,22 +15,88 @@ pusher_client = pusher.Pusher(
     ssl=True
 )
 
-# Database Connection
+
+# Conexión a base de datos
 def get_db_connection():
     return psycopg2.connect(
-        os.environ.get('DATABASE_URL', 'postgresql://localhost/realtime_gantt'),
+        os.getenv('DATABASE_URL', 'postgresql://localhost/realtime_gantt'),
         cursor_factory=RealDictCursor
     )
 
-# Existing Adapter and ThirdPartyGanttLibrary classes remain the same as in rtg_app.py
+# Clase Adapter (copiada desde tu implementación original)
+class ThirdPartyGanttLibrary:
+    def __init__(self):
+        self.tasks = []
+        self.task_id_counter = 0
+    
+    def add_gantt_element(self, element_type: str, data: dict):
+        self.task_id_counter += 1
+        task = {
+            "id": self.task_id_counter,
+            "text": data["name"],
+            "start_date": data["start"],
+            "end_date": data["end"],
+            "progress": data["progress"],
+            "open": True
+        }
+        self.tasks.append(task)
+        return self.task_id_counter
+    
+    def modify_element(self, element_id: int, new_data: dict):
+        for task in self.tasks:
+            if task["id"] == element_id:
+                task.update({
+                    "text": new_data["name"],
+                    "start_date": new_data["start"],
+                    "end_date": new_data["end"],
+                    "progress": new_data["progress"]
+                })
+                break
+    
+    def get_element_data(self, element_id: int):
+        for task in self.tasks:
+            if task["id"] == element_id:
+                return task
+        return None
+    
+    def get_all_elements(self):
+        return self.tasks
 
+class GanttChartAdapter:
+    def __init__(self):
+        self.third_party_chart = ThirdPartyGanttLibrary()
+    
+    def create_task(self, task_data: dict):
+        adapted_data = {
+            "name": task_data.get("name"),
+            "start": task_data.get("start_date"),
+            "end": task_data.get("end_date"),
+            "progress": float(task_data.get("progress", 0))
+        }
+        return self.third_party_chart.add_gantt_element("task", adapted_data)
+    
+    def update_task(self, task_id: int, task_data: dict):
+        adapted_data = {
+            "name": task_data.get("name"),
+            "start": task_data.get("start_date"),
+            "end": task_data.get("end_date"),
+            "progress": float(task_data.get("progress", 0))
+        }
+        self.third_party_chart.modify_element(task_id, adapted_data)
+    
+    def get_task_timeline(self, task_id: int):
+        return self.third_party_chart.get_element_data(task_id)
+    
+    def get_all_tasks(self):
+        return self.third_party_chart.get_all_elements()
+
+# Inicializar Flask
 app = Flask(__name__)
 CORS(app)
 gantt_chart = GanttChartAdapter()
 
-@app.route('/')
-def home():
-    return render_template('index.html')
+# Las rutas permanecen igual que en la versión anterior...
+# (Mantén todo el código de rutas que estaba en la versión previa)
 
 @app.route('/api/tasks', methods=['GET'])
 def get_tasks():
@@ -135,4 +201,4 @@ def delete_task(task_id):
         return jsonify({"error": str(e)}), 500
 
 if __name__ == '__main__':
-    app.run(debug=True)
+    app.run(host='0.0.0.0', port=int(os.environ.get('PORT', 5000)))
