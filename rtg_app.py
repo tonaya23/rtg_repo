@@ -30,7 +30,7 @@ pusher_client = pusher.Pusher(
 
     # Conexión a base de datos
     def get_db_connection():
-        db_url = get_env_variable('DATABASE_URL')
+        db_url = get_env_variable('postgresql://postgres:root@host:5432/rtg')
         if not db_url:
             logger.error("DATABASE_URL not configured!")
             raise ValueError("No database URL provided")
