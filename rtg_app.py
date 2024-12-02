@@ -1,11 +1,15 @@
 import os
+import logging
 from flask import Flask, render_template, jsonify, request
 from flask_cors import CORS
 import pusher
 import psycopg2
 from psycopg2.extras import RealDictCursor
 from datetime import datetime
+from dotenv import load_dotenv
 
+# Load environment variables
+load_dotenv()
 
 # Configuración de logging
 logging.basicConfig(level=logging.DEBUG)
@@ -18,19 +22,19 @@ def get_env_variable(var_name, default=None):
         logger.error(f"CRITICAL: Environment variable {var_name} not set!")
     return value
 
-# Pusher Configuration
-pusher_client = pusher.Pusher(
-    app_id=os.environ.get("1904573"),
-    key=os.environ.get("d4db60f9f99c2c2b7f8c"),
-    secret=os.environ.get("bcc85f0d3f4299526015"),
-    cluster=os.environ.get("mt1"),
-    ssl=True
-)
-
+try:
+    # Pusher Configuration
+    pusher_client = pusher.Pusher(
+        app_id=get_env_variable("PUSHER_APP_ID", "1904573"),
+        key=get_env_variable("PUSHER_KEY", "d4db60f9f99c2c2b7f8c"),
+        secret=get_env_variable("PUSHER_SECRET", "bcc85f0d3f4299526015"),
+        cluster=get_env_variable("PUSHER_CLUSTER", "mt1"),
+        ssl=True
+    )
 
     # Conexión a base de datos
     def get_db_connection():
-        db_url = get_env_variable('postgresql://postgres:root@host:5432/rtg')
+        db_url = get_env_variable('DATABASE_URL', 'postgresql://postgres:root@localhost:5432/rtg')
         if not db_url:
             logger.error("DATABASE_URL not configured!")
             raise ValueError("No database URL provided")

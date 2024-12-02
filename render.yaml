@@ -9,3 +9,13 @@ services:
         value: 3.10.0
       - key: FLASK_ENV
         value: production
+      - key: PUSHER_APP_ID
+        sync: false
+      - key: PUSHER_KEY
+        sync: false
+      - key: PUSHER_SECRET
+        sync: false
+      - key: PUSHER_CLUSTER
+        value: mt1
+      - key: DATABASE_URL
+        sync: false
