@@ -6,6 +6,18 @@ import psycopg2
 from psycopg2.extras import RealDictCursor
 from datetime import datetime
 
+
+# Configuración de logging
+logging.basicConfig(level=logging.DEBUG)
+logger = logging.getLogger(__name__)
+
+# Configuración segura de variables de entorno
+def get_env_variable(var_name, default=None):
+    value = os.getenv(var_name, default)
+    if value is None:
+        logger.error(f"CRITICAL: Environment variable {var_name} not set!")
+    return value
+
 # Pusher Configuration
 pusher_client = pusher.Pusher(
     app_id=os.environ.get("1904573"),
@@ -16,12 +28,22 @@ pusher_client = pusher.Pusher(
 )
 
 
-# Conexión a base de datos
-def get_db_connection():
-    return psycopg2.connect(
-        os.getenv('DATABASE_URL', 'postgresql://localhost/realtime_gantt'),
-        cursor_factory=RealDictCursor
-    )
+    # Conexión a base de datos
+    def get_db_connection():
+        db_url = get_env_variable('DATABASE_URL')
+        if not db_url:
+            logger.error("DATABASE_URL not configured!")
+            raise ValueError("No database URL provided")
+        
+        try:
+            conn = psycopg2.connect(db_url, cursor_factory=RealDictCursor)
+            return conn
+        except Exception as e:
+            logger.error(f"Database connection error: {e}")
+            raise
+
+except Exception as e:
+    logger.error(f"Initialization error: {e}")
 
 # Clase Adapter (copiada desde tu implementación original)
 class ThirdPartyGanttLibrary:
@@ -94,9 +116,6 @@ class GanttChartAdapter:
 app = Flask(__name__)
 CORS(app)
 gantt_chart = GanttChartAdapter()
-
-# Las rutas permanecen igual que en la versión anterior...
-# (Mantén todo el código de rutas que estaba en la versión previa)
 
 @app.route('/api/tasks', methods=['GET'])
 def get_tasks():
@@ -199,6 +218,19 @@ def delete_task(task_id):
         return jsonify({"success": True})
     except Exception as e:
         return jsonify({"error": str(e)}), 500
+
+
+# Ruta de prueba para verificar funcionamiento básico
+@app.route('/health')
+def health_check():
+    return jsonify({"status": "healthy"}), 200
+
+# [Mantén tus rutas existentes]
+
+@app.errorhandler(Exception)
+def handle_error(e):
+    logger.error(f"Unhandled exception: {e}")
+    return jsonify(error=str(e)), 500
 
 if __name__ == '__main__':
     app.run(host='0.0.0.0', port=int(os.environ.get('PORT', 5000)))
