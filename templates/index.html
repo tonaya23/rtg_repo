@@ -1,67 +1,98 @@
 <!DOCTYPE html>
 <html lang="en">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <head>
+    <meta charset="UTF-8" />
     <title>RealTimeGantt</title>
-    <script src="https://cdn.tailwindcss.com"></script>
-    <script src="https://js.pusher.com/8.2.0/pusher.min.js"></script>
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css">
-</head>
-<body class="bg-gray-100 font-sans">
-    <div class="container mx-auto px-4 py-8">
-        <h1 class="text-3xl font-bold text-center mb-8 text-gray-800">RealTimeGantt</h1>
-        
-        <div class="bg-white shadow-md rounded-lg p-6">
-            <form id="task-form" class="mb-6">
-                <div class="grid grid-cols-1 md:grid-cols-4 gap-4">
-                    <input type="text" id="task-name" placeholder="Task Name" 
-                           class="input border p-2 rounded" required>
-                    <input type="date" id="start-date" 
-                           class="input border p-2 rounded" required>
-                    <input type="date" id="end-date" 
-                           class="input border p-2 rounded" required>
-                    <input type="number" id="progress" placeholder="Progress (%)" 
-                           min="0" max="100" 
-                           class="input border p-2 rounded">
-                </div>
-                <button type="submit" 
-                        class="mt-4 bg-blue-500 hover:bg-blue-600 text-white font-bold py-2 px-4 rounded">
-                    Add Task
-                </button>
-            </form>
-
-            <table id="tasks-table" class="w-full border-collapse">
-                <thead>
-                    <tr class="bg-gray-200">
-                        <th class="p-3 text-left">Task Name</th>
-                        <th class="p-3 text-left">Start Date</th>
-                        <th class="p-3 text-left">End Date</th>
-                        <th class="p-3 text-left">Progress</th>
-                        <th class="p-3 text-left">Actions</th>
-                    </tr>
-                </thead>
-                <tbody id="tasks-list"></tbody>
-            </table>
+    <link
+      href="https://cdn.jsdelivr.net/npm/bootstrap@5.2.3/dist/css/bootstrap.min.css"
+      rel="stylesheet"
+    />
+    <script src="https://js.pusher.com/7.2/pusher.min.js"></script>
+  </head>
+  <body>
+    <div class="container mt-5">
+      <h1 class="text-center mb-4">RealTimeGantt</h1>
+      <div class="card">
+        <div class="card-header">Add New Task</div>
+        <div class="card-body">
+          <form id="taskForm">
+            <div class="mb-3">
+              <input
+                type="text"
+                class="form-control"
+                id="taskName"
+                placeholder="Task Name"
+                required
+              />
+            </div>
+            <div class="row">
+              <div class="col-md-6 mb-3">
+                <input
+                  type="date"
+                  class="form-control"
+                  id="startDate"
+                  required
+                />
+              </div>
+              <div class="col-md-6 mb-3">
+                <input type="date" class="form-control" id="endDate" required />
+              </div>
+            </div>
+            <div class="mb-3">
+              <input
+                type="number"
+                class="form-control"
+                id="progress"
+                placeholder="Progress (%)"
+                min="0"
+                max="100"
+              />
+            </div>
+            <button type="submit" class="btn btn-primary">Add Task</button>
+          </form>
         </div>
+      </div>
+      <div class="mt-4">
+        <table class="table" id="tasksTable">
+          <thead>
+            <tr>
+              <th>Task Name</th>
+              <th>Start Date</th>
+              <th>End Date</th>
+              <th>Progress</th>
+              <th>Actions</th>
+            </tr>
+          </thead>
+          <tbody id="tasksBody">
+            <!-- Tasks will be dynamically added here -->
+          </tbody>
+        </table>
+      </div>
     </div>
 
     <script>
-        // Pusher Configuration
-        const pusher = new Pusher("d4db60f9f99c2c2b7f8c", {
-            cluster: 'mt1'
-        });
-        const channel = pusher.subscribe('tasks-channel');
+      // Pusher and API interaction logic would go here
+      const taskForm = document.getElementById("taskForm");
+      const tasksBody = document.getElementById("tasksBody");
+    </script>
 
-        // Fetch and Display Tasks
-        async function fetchTasks() {
-            const response = await fetch('/api/tasks');
-            const data = await response.json();
-            const tasksList = document.getElementById('tasks-list');
-            tasksList.innerHTML = '';
-            data.data.forEach(task => {
-                const row = document.createElement('tr');
-                row.innerHTML = `
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.2.3/dist/js/bootstrap.bundle.min.js"></script>
+    <script>
+      // Pusher Configuration
+      const pusher = new Pusher("d4db60f9f99c2c2b7f8c", {
+        cluster: "mt1",
+      });
+      const channel = pusher.subscribe("tasks-channel");
+
+      // Fetch and Display Tasks
+      async function fetchTasks() {
+        const response = await fetch("/api/tasks");
+        const data = await response.json();
+        const tasksList = document.getElementById("tasks-list");
+        tasksList.innerHTML = "";
+        data.data.forEach((task) => {
+          const row = document.createElement("tr");
+          row.innerHTML = `
                     <td class="p-3">${task.name}</td>
                     <td class="p-3">${task.start_date}</td>
                     <td class="p-3">${task.end_date}</td>
@@ -75,34 +106,36 @@
                         </button>
                     </td>
                 `;
-                tasksList.appendChild(row);
-            });
-        }
+          tasksList.appendChild(row);
+        });
+      }
 
-        // Add Task
-        document.getElementById('task-form').addEventListener('submit', async (e) => {
-            e.preventDefault();
-            const task = {
-                name: document.getElementById('task-name').value,
-                start_date: document.getElementById('start-date').value,
-                end_date: document.getElementById('end-date').value,
-                progress: document.getElementById('progress').value
-            };
-            await fetch('/api/tasks', {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify(task)
-            });
-            e.target.reset();
+      // Add Task
+      document
+        .getElementById("task-form")
+        .addEventListener("submit", async (e) => {
+          e.preventDefault();
+          const task = {
+            name: document.getElementById("task-name").value,
+            start_date: document.getElementById("start-date").value,
+            end_date: document.getElementById("end-date").value,
+            progress: document.getElementById("progress").value,
+          };
+          await fetch("/api/tasks", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify(task),
+          });
+          e.target.reset();
         });
 
-        // Pusher Event Listeners
-        channel.bind('task-created', fetchTasks);
-        channel.bind('task-updated', fetchTasks);
-        channel.bind('task-deleted', fetchTasks);
+      // Pusher Event Listeners
+      channel.bind("task-created", fetchTasks);
+      channel.bind("task-updated", fetchTasks);
+      channel.bind("task-deleted", fetchTasks);
 
-        // Initial Tasks Load
-        fetchTasks();
+      // Initial Tasks Load
+      fetchTasks();
     </script>
-</body>
+  </body>
 </html>
